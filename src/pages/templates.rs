@@ -8,10 +8,13 @@ use web_sys::HtmlElement;
 use crate::api::{self, ApiError};
 use crate::models::{Exercises, FullTemplate, NamedFullTemplate, TemplateExercises, Templates};
 use crate::ui::{
-    BUTTON, BUTTON_DANGER, BUTTON_QUIET, BackLink, CARD, CHIP, ErrorText, ExerciseSelect, Header,
+    BUTTON, BUTTON_DANGER, BUTTON_QUIET, BackLink, CARD, ErrorText, ExerciseSelect, Header,
     ICON_BUTTON, MUTED, SECTION_TITLE, TITLE_INPUT, announce, confirm, focus_after_remove,
     id_param, next_key, replace_page, when_loaded,
 };
+
+/// BUTTON, as a link the height of a template card.
+const START_BUTTON: &str = "inline-flex shrink-0 items-center rounded-xl bg-stone-900 px-5 text-sm font-medium text-white transition-colors hover:bg-stone-700 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-300";
 
 #[component]
 pub fn TemplateList() -> impl IntoView {
@@ -29,23 +32,25 @@ pub fn TemplateList() -> impl IntoView {
                     return view! { <p class=MUTED>"No templates yet."</p> }.into_any();
                 }
                 view! {
-                    <ul class=CARD role="list">
+                    // Each template is its own card, with Start as a separate
+                    // button beside it.
+                    <ul class="space-y-2" role="list">
                         {list.into_iter()
                             .filter_map(|template| {
                                 let id: i32 = template.id?;
                                 // Every row has a "Start"; say which one.
                                 let start_label: String = format!("Start {}", template.name);
                                 Some(view! {
-                                    <li class="flex items-center pr-3">
+                                    <li class="flex gap-2">
                                         <a
                                             href=format!("/templates/{id}")
-                                            class="min-w-0 flex-1 truncate px-4 py-3 font-medium -outline-offset-2 transition-colors hover:text-stone-500"
+                                            class="min-w-0 flex-1 truncate rounded-xl border border-stone-200 bg-white px-4 py-3 font-medium transition-colors hover:bg-stone-50 dark:border-stone-800 dark:bg-stone-900 dark:hover:bg-stone-800/60"
                                         >
                                             {template.name}
                                         </a>
                                         <a
                                             href=format!("/workouts/new?template={id}")
-                                            class=CHIP
+                                            class=START_BUTTON
                                             aria-label=start_label
                                         >
                                             "Start"

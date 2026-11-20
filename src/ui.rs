@@ -33,7 +33,7 @@ pub const BUTTON_QUIET: &str = "shrink-0 rounded-lg border border-stone-300 px-4
 pub const BUTTON_DANGER: &str = "rounded-lg px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-950";
 /// 44px square: the minimum comfortable touch target.
 pub const ICON_BUTTON: &str = "grid size-11 shrink-0 place-items-center rounded-lg text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-700 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-200";
-pub const CHIP: &str = "inline-flex min-h-11 shrink-0 items-center rounded-full border border-stone-300 px-3 text-sm transition-colors hover:bg-stone-100 dark:border-stone-700 dark:hover:bg-stone-800";
+pub const CHIP: &str = "inline-flex min-h-11 shrink-0 items-center rounded-lg border border-stone-300 px-3 text-sm transition-colors hover:bg-stone-100 dark:border-stone-700 dark:hover:bg-stone-800";
 /// For `<ul>`/`<ol>` lists. Give them `role="list"`: Tailwind removes the
 /// bullets, and Safari then stops announcing them as lists.
 pub const CARD: &str = "divide-y divide-stone-200 overflow-hidden rounded-xl border border-stone-200 bg-white dark:divide-stone-800 dark:border-stone-800 dark:bg-stone-900";

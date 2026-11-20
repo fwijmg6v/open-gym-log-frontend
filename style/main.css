@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+/* Class names live in Rust strings; make sure Tailwind scans them. */
+@source "../src";
+
+@layer base {
+  :root {
+    /* Native controls (date picker, select, scrollbars) follow light/dark too */
+    color-scheme: light dark;
+    /* Tailwind turns hover styles off on touch screens and hides the tap
+       highlight, so a tap would show nothing. Bring back a soft one. */
+    -webkit-tap-highlight-color: rgb(120 113 108 / 0.25);
+    /* Keep focused fields clear of the fixed tab bar */
+    scroll-padding-bottom: calc(3rem + env(safe-area-inset-bottom));
+  }
+
+  body {
+    @apply bg-stone-50 text-stone-900 antialiased dark:bg-stone-950 dark:text-stone-100;
+    /* A long pasted word or URL in notes wraps instead of widening the page */
+    overflow-wrap: break-word;
+  }
+
+  /* Notes boxes grow with their text where supported (Safari 26.2+),
+     instead of scrolling inside a few rows. */
+  textarea {
+    field-sizing: content;
+    min-block-size: 4.5rem;
+  }
+
+  /* On touch screens every button and field is at least 44px tall, the
+     minimum comfortable size for a fingertip. Classes can still go bigger. */
+  @media (pointer: coarse) {
+    :where(button, input, select) {
+      min-block-size: 2.75rem;
+    }
+  }
+}
+
+/* Hidden, then shown: with a delay (animate-[appear_0s_300ms_both]), a
+   "Loading…" that's only needed for a moment never flashes. */
+@keyframes appear {
+  from {
+    visibility: hidden;
+  }
+}

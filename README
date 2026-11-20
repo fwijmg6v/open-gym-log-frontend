@@ -1,0 +1,43 @@
+open-gym-log-frontend
+Leptos (CSR) + Tailwind frontend for a private gym log API. Mobile-first,
+follows the system light/dark setting.
+
+Needs
+  Rust 1.85+ (edition 2024) with the WASM target, and Trunk 0.21+
+    rustup target add wasm32-unknown-unknown
+    cargo install trunk
+  Trunk downloads Tailwind itself (version pinned in Trunk.toml).
+
+Run
+  trunk serve              (http://127.0.0.1:8080)
+
+  The API must be running on 127.0.0.1:3000. Trunk proxies /api/* to it
+  (/api/exercises -> /exercises), so the API needs no CORS. Change the
+  address in Trunk.toml.
+
+Build
+  trunk build --release    (output in dist/)
+
+Layout
+  index.html         Trunk entry: Tailwind CSS + the Rust crate
+  style/main.css     Tailwind import, plus where to scan for classes
+  src/main.rs        mount the app
+  src/app.rs         routes and the bottom tab bar
+  src/models.rs      the API's JSON types (keep in sync with the API)
+  src/api.rs         one fn per API endpoint, named like the API's handlers
+  src/ui.rs          shared class strings, small components, formatting
+  src/pages/         one file per area: workouts, workout_new, templates, exercises
+
+Pages
+  /                        start a workout (empty or from a template), or
+                           continue the unsaved one; history
+  /workouts/new            log a workout; ?template=ID prefills its sets. Until
+                           it's saved or discarded, the workout is kept in the
+                           browser's localStorage, so leaving the page or a
+                           reload doesn't lose it
+  /workouts/{id}           a logged workout, sets grouped by exercise
+  /templates               list, with Start buttons
+  /templates/new           create
+  /templates/{id}          edit (replaces the whole template), start, delete
+  /exercises               list and add
+  /exercises/{id}          edit name and notes, delete, history by day

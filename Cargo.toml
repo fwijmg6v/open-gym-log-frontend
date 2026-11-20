@@ -1,0 +1,29 @@
+[package]
+name = "gym-web"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+leptos = { version = "0.8", features = ["csr"] }
+leptos_router = "0.8"
+gloo-net = { version = "0.6", features = ["http", "json"] }
+serde = { version = "1", features = ["derive"] }
+# The unsaved workout is kept in localStorage as JSON.
+serde_json = "1"
+# try_join!: pages that need two requests send both at once.
+futures = "0.3"
+js-sys = "0.3"
+web-sys = { version = "0.3", features = [
+  "Window",
+  "Storage",
+  "AbortSignal",
+  "Element",
+  "HtmlElement",
+] }
+console_error_panic_hook = "0.1"
+
+# Small WASM for the phone.
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1

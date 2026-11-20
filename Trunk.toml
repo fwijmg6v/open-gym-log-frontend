@@ -1,0 +1,12 @@
+[build]
+target = "index.html"
+dist = "dist"
+
+[tools]
+tailwindcss = "4.1.13"
+
+# `trunk serve` forwards /api/* to the backend, e.g. /api/exercises -> /exercises.
+# The browser only sees one origin, so the API needs no CORS setup.
+[[proxy]]
+rewrite = "/api/"
+backend = "http://127.0.0.1:3000/"

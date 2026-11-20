@@ -104,13 +104,13 @@ pub fn WorkoutList() -> impl IntoView {
 const WEEKS: u32 = 26;
 
 /// A GitHub-style calendar: one square per day, a column per week (Monday on
-/// top), filled on days with a workout. It's a picture of the list below,
-/// too small to tap, so screen readers get a one-line summary instead.
+/// top), filled on days with a workout. A filled square opens that workout.
 #[component]
 fn Heatmap(workouts: Vec<Workouts>) -> impl IntoView {
-    let names: HashMap<String, String> = workouts
+    // date -> (id, name)
+    let by_date: HashMap<String, (i32, String)> = workouts
         .into_iter()
-        .map(|workout| (workout.date, workout.name))
+        .filter_map(|workout| Some((workout.date, (workout.id?, workout.name))))
         .collect();
 
     // Local dates, built from year/month/day so DST changes can't skip or
@@ -128,25 +128,34 @@ fn Heatmap(workouts: Vec<Workouts>) -> impl IntoView {
         })
         .collect();
 
-    let count: usize = days.iter().filter(|day| names.contains_key(*day)).count();
-    let summary: String = format!("{count} workouts in the last {WEEKS} weeks");
+    let count: usize = days.iter().filter(|day| by_date.contains_key(*day)).count();
 
     view! {
         <section class="mb-8">
-            <h2 class=SECTION_TITLE>"Last " {WEEKS} " weeks"</h2>
-            <div role="img" aria-label=summary class="grid auto-cols-fr grid-flow-col grid-rows-7 gap-0.5">
+            <h2 class=SECTION_TITLE>
+                "Last " {WEEKS} " weeks"
+                <span class="sr-only">", " {count} " workouts"</span>
+            </h2>
+            // Screen readers only hear the filled days, as links; the empty
+            // squares are hidden from them.
+            <div class="grid auto-cols-fr grid-flow-col grid-rows-7 gap-0.5">
                 {days
                     .into_iter()
-                    .map(|day| match names.get(&day) {
-                        Some(name) => view! {
-                            <span
+                    .map(|day| match by_date.get(&day) {
+                        Some((id, name)) => view! {
+                            <a
+                                href=format!("/workouts/{id}")
                                 title=format!("{day} {name}")
-                                class="aspect-square rounded-sm bg-stone-900 dark:bg-stone-100"
-                            ></span>
+                                aria-label=format!("{name}, {day}")
+                                class="aspect-square rounded-sm bg-stone-900 outline-offset-1 transition-colors hover:bg-stone-600 dark:bg-stone-100 dark:hover:bg-stone-400"
+                            ></a>
                         }
                         .into_any(),
                         None => view! {
-                            <span class="aspect-square rounded-sm bg-stone-200 dark:bg-stone-800"></span>
+                            <span
+                                aria-hidden="true"
+                                class="aspect-square rounded-sm bg-stone-200 dark:bg-stone-800"
+                            ></span>
                         }
                         .into_any(),
                     })

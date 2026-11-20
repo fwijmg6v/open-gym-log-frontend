@@ -8,14 +8,19 @@ use web_sys::HtmlElement;
 use crate::api::{self, ApiError};
 use crate::models::{Exercises, FullTemplate, NamedFullTemplate, TemplateExercises, Templates};
 use crate::ui::{
-    BUTTON, BUTTON_DANGER, BUTTON_QUIET, BackLink, CARD, CARD_LINK, ErrorText, ExerciseSelect, Header,
+    BUTTON, BUTTON_DANGER, BUTTON_QUIET, BackLink, CARD, ErrorText, ExerciseSelect, Header,
     ICON_BUTTON, MUTED, SECTION_TITLE, TITLE_INPUT, announce, confirm, focus_after_remove,
     id_param, next_key, replace_page, when_loaded,
 };
 
 /// BUTTON at a fixed width, for "New" and every "Start", so they line up in
-/// one column on the right.
-const SIDE_BUTTON: &str = "inline-flex w-20 shrink-0 justify-center rounded-lg bg-stone-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-stone-700 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-300";
+/// one column on the right. 44px tall, like TEMPLATE_CARD.
+const SIDE_BUTTON: &str = "inline-flex h-11 w-20 shrink-0 items-center justify-center rounded-lg bg-stone-900 px-4 text-sm font-medium text-white transition-colors hover:bg-stone-700 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-300";
+
+/// CARD_LINK at 44px, the height of SIDE_BUTTON. The line height fills the
+/// card inside its 1px borders (42px), which centres the name and keeps
+/// `truncate` working.
+const TEMPLATE_CARD: &str = "block h-11 min-w-0 flex-1 truncate rounded-xl border border-stone-200 bg-white px-4 leading-[2.625rem] font-medium transition-colors hover:bg-stone-50 dark:border-stone-800 dark:bg-stone-900 dark:hover:bg-stone-800/60";
 
 #[component]
 pub fn TemplateList() -> impl IntoView {
@@ -45,7 +50,7 @@ pub fn TemplateList() -> impl IntoView {
                                     <li class="flex items-center gap-2">
                                         <a
                                             href=format!("/templates/{id}")
-                                            class=CARD_LINK
+                                            class=TEMPLATE_CARD
                                         >
                                             {template.name}
                                         </a>

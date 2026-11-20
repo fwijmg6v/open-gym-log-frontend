@@ -11,8 +11,8 @@ use crate::ui::{
     group_consecutive, id_param, when_loaded,
 };
 
-/// The ASCII art at the bottom of Home. Paste it into src/art.txt; when
-/// the file is empty, nothing is shown.
+/// The ASCII art at the bottom of Home: the hands from Michelangelo's
+/// Creation of Adam, after a dot-art piece by @samdape. Empty file = no art.
 const ART: &str = include_str!("../art.txt");
 
 /// Home: start a workout, empty or from a template.
@@ -84,10 +84,13 @@ pub fn Home() -> impl IntoView {
         <Header title="Open Gym Log" />
         <section>{start_section}</section>
         {(!ART.trim().is_empty()).then(|| view! {
-            // Decoration only, so screen readers skip it.
-            <pre aria-hidden="true" class="mt-12 overflow-hidden text-center text-[2.2vw] leading-tight text-stone-400 select-none sm:text-xs dark:text-stone-600">
-                {ART}
-            </pre>
+            // Decoration only, so screen readers skip it. The art is 178
+            // columns wide: 178 × 0.6em (Plex Mono's advance) = 107em. Font
+            // size 100cqi / 110 fills the page width, with 3% to spare for
+            // fallback fonts that are a little wider.
+            <div aria-hidden="true" class="@container mt-12 select-none">
+                <pre class="overflow-hidden text-[calc(100cqi/110)] leading-[1.13] text-stone-500 dark:text-stone-400">{ART}</pre>
+            </div>
         })}
     }
 }

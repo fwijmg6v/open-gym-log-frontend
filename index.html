@@ -11,6 +11,9 @@
     <meta name="theme-color" content="#0c0a09" media="(prefers-color-scheme: dark)" />
     <title>Gym log</title>
     <link data-trunk rel="tailwind-css" href="style/main.css" />
+    <!-- fonts/ is copied as-is; the body weight is fetched before the CSS asks -->
+    <link data-trunk rel="copy-dir" href="fonts" />
+    <link rel="preload" href="/fonts/plex-mono-400.woff2" as="font" type="font/woff2" crossorigin />
     <link data-trunk rel="rust" data-wasm-opt="z" />
   </head>
   <body></body>

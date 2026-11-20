@@ -1,0 +1,5 @@
+IBM Plex Mono (SIL Open Font License 1.1), latin subset, weights 400/500/600.
+Fetch with:
+
+  for w in 400 500 600; do curl -fLo fonts/plex-mono-$w.woff2 https://cdn.jsdelivr.net/fontsource/fonts/ibm-plex-mono@latest/latin-$w-normal.woff2; done
+  curl -fLo fonts/OFL.txt https://raw.githubusercontent.com/IBM/plex/master/LICENSE.txt

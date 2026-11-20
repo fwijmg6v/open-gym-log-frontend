@@ -7,9 +7,13 @@ use super::workout_new::draft_name;
 use crate::api::{self, ApiError};
 use crate::models::{NamedSets, Templates, Workouts};
 use crate::ui::{
-    BackLink, CARD, CHIP, Header, MUTED, ROW_LINK, SECTION_TITLE, SetLine, format_date,
+    BackLink, CARD, CARD_LINK, Header, MUTED, ROW_LINK, SECTION_TITLE, SetLine, format_date,
     group_consecutive, id_param, when_loaded,
 };
+
+/// The ASCII art at the bottom of Home. Paste it into src/art.txt; when
+/// the file is empty, nothing is shown.
+const ART: &str = include_str!("../art.txt");
 
 /// Home: start a workout, empty or from a template.
 #[component]
@@ -19,7 +23,7 @@ pub fn Home() -> impl IntoView {
     let start_section: AnyView = match draft_name() {
         Some(name) => view! {
             <h2 class=SECTION_TITLE>"Unsaved workout"</h2>
-            <a href="/workouts/new" class=CHIP>"Continue " {name}</a>
+            <a href="/workouts/new" class=CARD_LINK>"Continue " {name}</a>
         }
         .into_any(),
         None => {
@@ -28,23 +32,48 @@ pub fn Home() -> impl IntoView {
                 LocalResource::new(api::get_templates);
             view! {
                 <h2 class=SECTION_TITLE>"Start a workout"</h2>
-                <div class="flex flex-wrap gap-2">
-                    <a href="/workouts/new" class=CHIP>"Empty"</a>
-                    {move || when_loaded(
-                        templates.get(),
-                        |list: Vec<Templates>| {
-                            list.into_iter()
-                                .filter_map(|template| {
-                                    let id: i32 = template.id?;
-                                    Some(view! {
-                                        <a href=format!("/workouts/new?template={id}") class=CHIP>
-                                            {template.name}
-                                        </a>
-                                    })
-                                })
-                                .collect_view()
-                        },
-                    )}
+                <div class="space-y-2">
+                    <a href="/workouts/new" class=CARD_LINK>"Empty workout"</a>
+                    // Native disclosure: opens and closes with no code, works
+                    // with the keyboard, and screen readers say expanded/collapsed.
+                    <details class="group overflow-hidden rounded-xl border border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900">
+                        <summary class="flex cursor-pointer list-none items-center justify-between px-4 py-3 font-medium -outline-offset-2 transition-colors hover:bg-stone-50 dark:hover:bg-stone-800/60 [&::-webkit-details-marker]:hidden">
+                            "From a template"
+                            <span aria-hidden="true" class="text-stone-500 transition-transform group-open:rotate-180 dark:text-stone-400">"▾"</span>
+                        </summary>
+                        <div class="border-t border-stone-200 dark:border-stone-800">
+                            {move || when_loaded(
+                                templates.get(),
+                                |list: Vec<Templates>| {
+                                    if list.is_empty() {
+                                        return view! {
+                                            <p class="px-4 py-3 text-sm text-stone-500 dark:text-stone-400">
+                                                "No templates yet."
+                                            </p>
+                                        }
+                                        .into_any();
+                                    }
+                                    view! {
+                                        <ul class="divide-y divide-stone-200 dark:divide-stone-800" role="list">
+                                            {list.into_iter()
+                                                .filter_map(|template| {
+                                                    let id: i32 = template.id?;
+                                                    Some(view! {
+                                                        <li>
+                                                            <a href=format!("/workouts/new?template={id}") class=ROW_LINK>
+                                                                {template.name}
+                                                            </a>
+                                                        </li>
+                                                    })
+                                                })
+                                                .collect_view()}
+                                        </ul>
+                                    }
+                                    .into_any()
+                                },
+                            )}
+                        </div>
+                    </details>
                 </div>
             }
             .into_any()
@@ -52,8 +81,14 @@ pub fn Home() -> impl IntoView {
     };
 
     view! {
-        <Header title="Start" />
+        <Header title="Open Gym Log" />
         <section>{start_section}</section>
+        {(!ART.trim().is_empty()).then(|| view! {
+            // Decoration only, so screen readers skip it.
+            <pre aria-hidden="true" class="mt-12 overflow-hidden text-center text-[2.2vw] leading-tight text-stone-400 select-none sm:text-xs dark:text-stone-600">
+                {ART}
+            </pre>
+        })}
     }
 }
 

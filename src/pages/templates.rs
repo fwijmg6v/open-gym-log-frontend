@@ -8,13 +8,14 @@ use web_sys::HtmlElement;
 use crate::api::{self, ApiError};
 use crate::models::{Exercises, FullTemplate, NamedFullTemplate, TemplateExercises, Templates};
 use crate::ui::{
-    BUTTON, BUTTON_DANGER, BUTTON_QUIET, BackLink, CARD, ErrorText, ExerciseSelect, Header,
+    BUTTON, BUTTON_DANGER, BUTTON_QUIET, BackLink, CARD, CARD_LINK, ErrorText, ExerciseSelect, Header,
     ICON_BUTTON, MUTED, SECTION_TITLE, TITLE_INPUT, announce, confirm, focus_after_remove,
     id_param, next_key, replace_page, when_loaded,
 };
 
-/// BUTTON, as a link the height of a template card.
-const START_BUTTON: &str = "inline-flex shrink-0 items-center rounded-xl bg-stone-900 px-5 text-sm font-medium text-white transition-colors hover:bg-stone-700 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-300";
+/// BUTTON at a fixed width, for "New" and every "Start", so they line up in
+/// one column on the right.
+const SIDE_BUTTON: &str = "inline-flex w-20 shrink-0 justify-center rounded-lg bg-stone-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-stone-700 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-300";
 
 #[component]
 pub fn TemplateList() -> impl IntoView {
@@ -23,7 +24,7 @@ pub fn TemplateList() -> impl IntoView {
 
     view! {
         <Header title="Templates">
-            <a href="/templates/new" class=BUTTON>"New"</a>
+            <a href="/templates/new" class=SIDE_BUTTON>"New"</a>
         </Header>
         {move || when_loaded(
             templates.get(),
@@ -41,16 +42,16 @@ pub fn TemplateList() -> impl IntoView {
                                 // Every row has a "Start"; say which one.
                                 let start_label: String = format!("Start {}", template.name);
                                 Some(view! {
-                                    <li class="flex gap-2">
+                                    <li class="flex items-center gap-2">
                                         <a
                                             href=format!("/templates/{id}")
-                                            class="min-w-0 flex-1 truncate rounded-xl border border-stone-200 bg-white px-4 py-3 font-medium transition-colors hover:bg-stone-50 dark:border-stone-800 dark:bg-stone-900 dark:hover:bg-stone-800/60"
+                                            class=CARD_LINK
                                         >
                                             {template.name}
                                         </a>
                                         <a
                                             href=format!("/workouts/new?template={id}")
-                                            class=START_BUTTON
+                                            class=SIDE_BUTTON
                                             aria-label=start_label
                                         >
                                             "Start"

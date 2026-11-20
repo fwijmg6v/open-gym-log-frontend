@@ -25,8 +25,9 @@ pub const INPUT: &str = "w-full rounded-lg border border-stone-500 bg-white px-3
 /// Big input that doubles as the page title (put it in an `<h1>`). It's
 /// underlined while focused.
 pub const TITLE_INPUT: &str = "w-full border-b-2 border-transparent bg-transparent text-2xl font-semibold tracking-tight placeholder:text-stone-500 focus:border-stone-500 focus:outline-hidden user-invalid:border-red-600 dark:placeholder:text-stone-400 dark:focus:border-stone-400 dark:user-invalid:border-red-400";
-/// `min-w-0` lets the set row's inputs shrink on phones narrower than 372px.
-pub const NUMBER_INPUT: &str = "w-18 min-w-0 rounded-lg border border-stone-500 bg-white px-2 py-1.5 text-center text-base tabular-nums placeholder:text-stone-500 focus:border-stone-900 focus:outline-hidden user-invalid:border-red-600 dark:bg-stone-900 dark:placeholder:text-stone-400 dark:focus:border-stone-100 dark:user-invalid:border-red-400";
+/// The set row's three number inputs share its spare width (`flex-1`);
+/// `min-w-0` lets them shrink below their content on narrow phones.
+pub const NUMBER_INPUT: &str = "w-0 min-w-0 flex-1 rounded-lg border border-stone-500 bg-white px-2 py-1.5 text-center text-base tabular-nums placeholder:text-stone-500 focus:border-stone-900 focus:outline-hidden user-invalid:border-red-600 dark:bg-stone-900 dark:placeholder:text-stone-400 dark:focus:border-stone-100 dark:user-invalid:border-red-400";
 pub const BUTTON: &str = "rounded-lg bg-stone-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-stone-700 disabled:opacity-50 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-300";
 pub const BUTTON_QUIET: &str = "shrink-0 rounded-lg border border-stone-300 px-4 py-2 text-sm font-medium transition-colors hover:bg-stone-100 disabled:opacity-50 dark:border-stone-700 dark:hover:bg-stone-800";
 pub const BUTTON_DANGER: &str = "rounded-lg px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-950";
@@ -162,6 +163,21 @@ pub fn group_consecutive<T, K: PartialEq>(
     groups
 }
 
+/// A logged set as a list item: "102.5 kg × 5 @ RIR 2", with its note
+/// underneath if it has one.
+#[component]
+pub fn SetLine(set: Sets) -> impl IntoView {
+    let line: String = describe_set(&set);
+    view! {
+        <li>
+            {line}
+            {set.notes.map(|notes| view! {
+                <p class="text-xs whitespace-pre-line text-stone-500 dark:text-stone-400">{notes}</p>
+            })}
+        </li>
+    }
+}
+
 /// "102.5 kg × 5 @ RIR 2"
 pub fn describe_set(set: &Sets) -> String {
     let weight: &str = set.weight.as_deref().map(trim_weight).unwrap_or("?");
@@ -189,12 +205,16 @@ pub fn non_empty(text: String) -> Option<String> {
 
 /// Today on the phone's clock, as "YYYY-MM-DD".
 pub fn today() -> String {
-    let now: js_sys::Date = js_sys::Date::new_0();
+    format_date(&js_sys::Date::new_0())
+}
+
+/// A date in the phone's time zone as "YYYY-MM-DD", the API's format.
+pub fn format_date(date: &js_sys::Date) -> String {
     format!(
         "{:04}-{:02}-{:02}",
-        now.get_full_year(),
-        now.get_month() + 1,
-        now.get_date()
+        date.get_full_year(),
+        date.get_month() + 1,
+        date.get_date()
     )
 }
 

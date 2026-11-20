@@ -1,3 +1,5 @@
+use std::collections::{HashMap, HashSet};
+
 use futures::join;
 use leptos::ev::SubmitEvent;
 use leptos::prelude::*;
@@ -8,7 +10,9 @@ use serde::{Deserialize, Serialize};
 use web_sys::Storage;
 
 use crate::api::{self, ApiError};
-use crate::models::{Exercises, FullWorkout, NamedFullWorkout, Sets, WeightUnit, Workouts};
+use crate::models::{
+    DatedSets, Exercises, FullWorkout, NamedFullWorkout, Sets, WeightUnit, Workouts,
+};
 use crate::ui::{
     BUTTON, BUTTON_DANGER, BUTTON_QUIET, BackLink, CARD, ERROR, ErrorText, ExerciseSelect,
     ICON_BUTTON, INPUT, MUTED, NUMBER_INPUT, SECTION_TITLE, TITLE_INPUT, announce, confirm,
@@ -29,7 +33,7 @@ pub fn WorkoutNew() -> impl IntoView {
     });
 
     view! {
-        <BackLink href="/" label="Workouts" />
+        <BackLink href="/" label="Home" />
         {move || when_loaded(
             data.get(),
             |page: NewWorkout| view! {
@@ -168,6 +172,9 @@ struct SetRow {
     metric: WeightUnit,
     reps: String,
     rir: String,
+    /// `default`: drafts saved before set notes existed still load.
+    #[serde(default)]
+    notes: String,
 }
 
 impl SetRow {
@@ -180,10 +187,11 @@ impl SetRow {
             metric,
             reps: String::new(),
             rir: String::new(),
+            notes: String::new(),
         }
     }
 
-    /// Same exercise, weight, and unit, with a new key. Reps and RIR start empty.
+    /// Same exercise, weight, and unit, with a new key. Reps, RIR and notes start empty.
     fn copy(&self) -> Self {
         SetRow::new(
             self.e_id,
@@ -192,6 +200,28 @@ impl SetRow {
             self.metric,
         )
     }
+}
+
+/// The last set logged on an exercise: its workout's date and its note
+/// (`None` if it had none).
+#[derive(Clone, Debug, PartialEq)]
+struct LastSet {
+    date: String,
+    notes: Option<String>,
+}
+
+/// The API sends an exercise's sets newest date first, then in set order, so
+/// the last logged set is the last one on the first date.
+fn last_logged(history: &[DatedSets]) -> Option<LastSet> {
+    let newest: &str = &history.first()?.date;
+    let last: &DatedSets = history
+        .iter()
+        .take_while(|dated| dated.date == newest)
+        .last()?;
+    Some(LastSet {
+        date: last.date.clone(),
+        notes: last.set.notes.clone(),
+    })
 }
 
 /// Changes one field of the row with this key.
@@ -222,6 +252,31 @@ fn WorkoutForm(
     let saving: RwSignal<bool> = RwSignal::new(false);
     // Read out by screen readers after a set is removed.
     let announcement: RwSignal<String> = RwSignal::new(String::new());
+    // The last logged set per exercise id, fetched once per exercise.
+    let last_sets: RwSignal<HashMap<i32, LastSet>> = RwSignal::new(HashMap::new());
+    let requested: StoredValue<HashSet<i32>> = StoredValue::new(HashSet::new());
+
+    // Whenever a new exercise shows up in the rows, fetch its history once.
+    // A failed request (no signal) just leaves its "Last" line out.
+    Effect::new(move |_| {
+        let ids: Vec<i32> = rows.with(|list| list.iter().map(|row| row.e_id).collect());
+        for e_id in ids {
+            if !requested.try_update_value(|done| done.insert(e_id)).unwrap_or(false) {
+                continue;
+            }
+            spawn_local(async move {
+                let found: Option<LastSet> = api::get_sets_by_exercise(e_id)
+                    .await
+                    .ok()
+                    .and_then(|history| last_logged(&history));
+                if let Some(last) = found {
+                    last_sets.update(|map| {
+                        map.insert(e_id, last);
+                    });
+                }
+            });
+        }
+    });
 
     // Keep the draft after every change. The first run only starts tracking
     // (`has_run` is None), so opening a template and leaving keeps nothing.
@@ -297,7 +352,7 @@ fn WorkoutForm(
             match api::post_workout(&workout).await {
                 Ok(()) => {
                     clear_draft();
-                    navigate("/", replace_page());
+                    navigate("/workouts", replace_page());
                 }
                 Err(failure) => {
                     error.set(Some(match failure {
@@ -361,7 +416,20 @@ fn WorkoutForm(
                             each=move || rows.get()
                             key=|row: &SetRow| row.key
                             children=move |row: SetRow| {
-                                view! { <SetRowView row=row rows=rows announcement=announcement /> }
+                                let setup: Option<String> = exercises.with_value(|list| {
+                                    list.iter()
+                                        .find(|exercise| exercise.id == Some(row.e_id))
+                                        .and_then(|exercise| exercise.notes.clone())
+                                });
+                                view! {
+                                    <SetRowView
+                                        row=row
+                                        rows=rows
+                                        setup=setup
+                                        last_sets=last_sets
+                                        announcement=announcement
+                                    />
+                                }
                             }
                         />
                     </ol>
@@ -414,9 +482,23 @@ fn WorkoutForm(
 fn SetRowView(
     row: SetRow,
     rows: RwSignal<Vec<SetRow>>,
+    /// The exercise's own notes (machine settings and such).
+    setup: Option<String>,
+    last_sets: RwSignal<HashMap<i32, LastSet>>,
     announcement: RwSignal<String>,
 ) -> impl IntoView {
     let key: usize = row.key;
+    let e_id: i32 = row.e_id;
+    // "Last (2026-11-12): need to improve form", shown even without a note,
+    // once the exercise's history has arrived.
+    let last_line = move || {
+        last_sets.with(|map| {
+            map.get(&e_id).map(|last| {
+                let note: String = last.notes.clone().unwrap_or_else(|| String::from("no note"));
+                format!("Last ({}): {note}", last.date)
+            })
+        })
+    };
     // Buttons say which exercise they act on.
     let add_label: String = format!("Add another {} set", row.exercise_name);
     let remove_label: String = format!("Remove {} set", row.exercise_name);
@@ -468,6 +550,10 @@ fn SetRowView(
                     </button>
                 </div>
             </div>
+            <div class="mb-2 space-y-0.5 text-xs whitespace-pre-line text-stone-500 dark:text-stone-400">
+                {setup.map(|notes| view! { <p>"Setup: " {notes}</p> })}
+                {move || last_line().map(|line| view! { <p>{line}</p> })}
+            </div>
             // The browser checks `required` and `pattern` on submit and focuses the
             // first bad field; build_workout checks the same rules again.
             <div class="flex items-center gap-2">
@@ -509,6 +595,16 @@ fn SetRowView(
                     pattern="[0-9]{1,2}"
                     value=row.rir
                     on:input:target=move |ev| edit_row(rows, key, |row| row.rir = ev.target().value())
+                />
+            </div>
+            <div class="mt-2">
+                <input
+                    class=INPUT
+                    placeholder="Set notes"
+                    aria-label="Set notes"
+                    maxlength="200"
+                    value=row.notes
+                    on:input:target=move |ev| edit_row(rows, key, |row| row.notes = ev.target().value())
                 />
             </div>
         </li>
@@ -560,7 +656,7 @@ fn build_workout(
             metric: Some(row.metric),
             reps: Some(reps),
             rir,
-            notes: None,
+            notes: non_empty(row.notes.clone()),
             set_order: number as i16,
         });
     }
@@ -602,4 +698,59 @@ fn parse_weight(input: &str) -> Option<String> {
 fn parse_count(input: &str) -> Option<i16> {
     let value: i16 = input.trim().parse().ok()?;
     (value >= 0).then_some(value)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn dated(date: &str, set_order: i16, notes: Option<&str>) -> DatedSets {
+        DatedSets {
+            set: Sets {
+                id: None,
+                w_id: None,
+                e_id: 1,
+                weight: Some(String::from("100")),
+                metric: Some(WeightUnit::Kg),
+                reps: Some(5),
+                rir: None,
+                notes: notes.map(String::from),
+                set_order,
+            },
+            date: String::from(date),
+        }
+    }
+
+    #[test]
+    fn no_history() {
+        assert_eq!(last_logged(&[]), None);
+    }
+
+    #[test]
+    fn last_set_of_newest_date() {
+        // API order: newest date first, then set order.
+        let history = [
+            dated("2026-11-12", 1, Some("warm-up")),
+            dated("2026-11-12", 3, Some("need to improve form")),
+            dated("2026-11-05", 2, Some("older")),
+        ];
+        let last = last_logged(&history).unwrap();
+        assert_eq!(last.date, "2026-11-12");
+        assert_eq!(last.notes.as_deref(), Some("need to improve form"));
+    }
+
+    #[test]
+    fn empty_note_still_counts() {
+        let history = [
+            dated("2026-11-12", 1, Some("need to improve form")),
+            dated("2026-11-12", 2, None),
+        ];
+        assert_eq!(last_logged(&history).unwrap().notes, None);
+    }
+
+    #[test]
+    fn single_set() {
+        let history = [dated("2026-10-01", 1, Some("ok"))];
+        assert_eq!(last_logged(&history).unwrap().notes.as_deref(), Some("ok"));
+    }
 }

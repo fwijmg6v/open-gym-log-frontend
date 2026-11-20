@@ -5,7 +5,7 @@ use leptos_router::hooks::use_location;
 use leptos_router::path;
 
 use crate::pages::{
-    ExerciseDetail, ExerciseList, TemplateEdit, TemplateList, TemplateNew, WorkoutDetail,
+    ExerciseDetail, ExerciseList, Home, TemplateEdit, TemplateList, TemplateNew, WorkoutDetail,
     WorkoutList, WorkoutNew,
 };
 use crate::ui::MUTED;
@@ -24,7 +24,8 @@ pub fn App() -> impl IntoView {
             >
                 // Static segments ("new") go before ":id" so they win.
                 <Routes fallback=|| view! { <p class=MUTED>"Page not found."</p> }>
-                    <Route path=path!("/") view=WorkoutList />
+                    <Route path=path!("/") view=Home />
+                    <Route path=path!("/workouts") view=WorkoutList />
                     <Route path=path!("/workouts/new") view=WorkoutNew />
                     <Route path=path!("/workouts/:id") view=WorkoutDetail />
                     <Route path=path!("/templates") view=TemplateList />
@@ -64,20 +65,19 @@ const TAB: &str = "py-3 text-center text-sm font-medium text-stone-500 transitio
 #[component]
 fn Nav() -> impl IntoView {
     let pathname: Memo<String> = use_location().pathname;
-    let tab = move |href: &'static str, section: &'static str, label: &'static str| {
-        let current = move || {
-            let path: String = pathname.get();
-            (path == href || path.starts_with(section)).then_some("page")
-        };
+    let tab = move |href: &'static str, is_current: fn(&str) -> bool, label: &'static str| {
+        let current = move || pathname.with(|path| is_current(path)).then_some("page");
         view! { <a href=href aria-current=current class=TAB>{label}</a> }
     };
 
     view! {
         <nav class="fixed inset-x-0 bottom-0 border-t border-stone-200 bg-stone-50/90 backdrop-blur dark:border-stone-800 dark:bg-stone-950/90">
-            <div class="mx-auto grid max-w-lg grid-cols-3 pb-[env(safe-area-inset-bottom)]">
-                {tab("/", "/workouts", "Workouts")}
-                {tab("/templates", "/templates", "Templates")}
-                {tab("/exercises", "/exercises", "Exercises")}
+            <div class="mx-auto grid max-w-lg grid-cols-4 pb-[env(safe-area-inset-bottom)]">
+                // The workout being logged belongs to Home, where it was started.
+                {tab("/", |path| path == "/" || path == "/workouts/new", "Home")}
+                {tab("/workouts", |path| path.starts_with("/workouts") && path != "/workouts/new", "Workouts")}
+                {tab("/templates", |path| path.starts_with("/templates"), "Templates")}
+                {tab("/exercises", |path| path.starts_with("/exercises"), "Exercises")}
             </div>
         </nav>
     }

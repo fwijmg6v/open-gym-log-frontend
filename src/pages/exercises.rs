@@ -8,7 +8,7 @@ use crate::api::{self, ApiError};
 use crate::models::{DatedSets, Exercises};
 use crate::ui::{
     BUTTON, BUTTON_DANGER, BackLink, CARD, ErrorText, Header, INPUT, MUTED, ROW_LINK,
-    SECTION_TITLE, TITLE_INPUT, confirm, describe_set, group_consecutive, id_param, non_empty,
+    SECTION_TITLE, SetLine, TITLE_INPUT, confirm, group_consecutive, id_param, non_empty,
     replace_page, when_loaded,
 };
 
@@ -205,7 +205,7 @@ fn ExerciseEditor(id: i32, exercise: Exercises, history: Vec<DatedSets>) -> impl
                             <ol class="mt-1 space-y-0.5 tabular-nums" role="list">
                                 {sets
                                     .into_iter()
-                                    .map(|dated| view! { <li>{describe_set(&dated.set)}</li> })
+                                    .map(|dated| view! { <SetLine set=dated.set /> })
                                     .collect_view()}
                             </ol>
                         </li>

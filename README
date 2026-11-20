@@ -20,18 +20,23 @@ Build
 
 Layout
   index.html         Trunk entry: Tailwind CSS + the Rust crate
-  style/main.css     Tailwind import, plus where to scan for classes
+  style/main.css     Tailwind import, where to scan for classes, the font
+  fonts/             IBM Plex Mono woff2 files (fetch them: see fonts/README)
   src/main.rs        mount the app
   src/app.rs         routes and the bottom tab bar
   src/models.rs      the API's JSON types (keep in sync with the API)
   src/api.rs         one fn per API endpoint, named like the API's handlers
   src/ui.rs          shared class strings, small components, formatting
-  src/pages/         one file per area: workouts, workout_new, templates, exercises
+  src/pages/         one file per area: workouts (home too), workout_new,
+                     templates, exercises
 
 Pages
   /                        start a workout (empty or from a template), or
-                           continue the unsaved one; history
-  /workouts/new            log a workout; ?template=ID prefills its sets. Until
+                           continue the unsaved one
+  /workouts                calendar of the last 26 weeks, and history
+  /workouts/new            log a workout; ?template=ID prefills its sets. Each
+                           set shows the exercise's notes and the note of the
+                           last set logged on it, and has its own notes. Until
                            it's saved or discarded, the workout is kept in the
                            browser's localStorage, so leaving the page or a
                            reload doesn't lose it

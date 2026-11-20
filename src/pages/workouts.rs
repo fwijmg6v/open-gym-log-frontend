@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use futures::try_join;
 use leptos::prelude::*;
 
@@ -5,16 +7,13 @@ use super::workout_new::draft_name;
 use crate::api::{self, ApiError};
 use crate::models::{NamedSets, Templates, Workouts};
 use crate::ui::{
-    BackLink, CARD, CHIP, Header, MUTED, ROW_LINK, SECTION_TITLE, describe_set, group_consecutive,
-    id_param, when_loaded,
+    BackLink, CARD, CHIP, Header, MUTED, ROW_LINK, SECTION_TITLE, SetLine, format_date,
+    group_consecutive, id_param, when_loaded,
 };
 
-/// Home: start a workout (empty or from a template), then the history.
+/// Home: start a workout, empty or from a template.
 #[component]
-pub fn WorkoutList() -> impl IntoView {
-    let workouts: LocalResource<Result<Vec<Workouts>, ApiError>> =
-        LocalResource::new(api::get_workouts);
-
+pub fn Home() -> impl IntoView {
     // An unsaved workout replaces the start buttons: any of them would open
     // it anyway, until it's saved or discarded.
     let start_section: AnyView = match draft_name() {
@@ -53,17 +52,29 @@ pub fn WorkoutList() -> impl IntoView {
     };
 
     view! {
+        <Header title="Start" />
+        <section>{start_section}</section>
+    }
+}
+
+/// Past workouts: the calendar, then the list (newest first).
+#[component]
+pub fn WorkoutList() -> impl IntoView {
+    let workouts: LocalResource<Result<Vec<Workouts>, ApiError>> =
+        LocalResource::new(api::get_workouts);
+
+    view! {
         <Header title="Workouts" />
-        <section class="mb-8">{start_section}</section>
-        <section>
-            <h2 class=SECTION_TITLE>"History"</h2>
-            {move || when_loaded(
-                workouts.get(),
-                |list: Vec<Workouts>| {
-                    if list.is_empty() {
-                        return view! { <p class=MUTED>"No workouts yet."</p> }.into_any();
-                    }
-                    view! {
+        {move || when_loaded(
+            workouts.get(),
+            |list: Vec<Workouts>| {
+                if list.is_empty() {
+                    return view! { <p class=MUTED>"No workouts yet."</p> }.into_any();
+                }
+                view! {
+                    <Heatmap workouts=list.clone() />
+                    <section>
+                        <h2 class=SECTION_TITLE>"History"</h2>
                         <ul class=CARD role="list">
                             {list.into_iter()
                                 .filter_map(|workout| {
@@ -81,10 +92,66 @@ pub fn WorkoutList() -> impl IntoView {
                                 })
                                 .collect_view()}
                         </ul>
-                    }
-                    .into_any()
-                },
-            )}
+                    </section>
+                }
+                .into_any()
+            },
+        )}
+    }
+}
+
+/// How many weeks the calendar shows, this one included.
+const WEEKS: u32 = 26;
+
+/// A GitHub-style calendar: one square per day, a column per week (Monday on
+/// top), filled on days with a workout. It's a picture of the list below,
+/// too small to tap, so screen readers get a one-line summary instead.
+#[component]
+fn Heatmap(workouts: Vec<Workouts>) -> impl IntoView {
+    let names: HashMap<String, String> = workouts
+        .into_iter()
+        .map(|workout| (workout.date, workout.name))
+        .collect();
+
+    // Local dates, built from year/month/day so DST changes can't skip or
+    // repeat a day (JS rolls day 0, 32 and so on into the right month).
+    let now: js_sys::Date = js_sys::Date::new_0();
+    let weekday: u32 = (now.get_day() + 6) % 7; // Monday = 0
+    let first_day: i32 = now.get_date() as i32 - (weekday + (WEEKS - 1) * 7) as i32;
+    let days: Vec<String> = (0..=(WEEKS - 1) * 7 + weekday)
+        .map(|offset| {
+            format_date(&js_sys::Date::new_with_year_month_day(
+                now.get_full_year(),
+                now.get_month() as i32,
+                first_day + offset as i32,
+            ))
+        })
+        .collect();
+
+    let count: usize = days.iter().filter(|day| names.contains_key(*day)).count();
+    let summary: String = format!("{count} workouts in the last {WEEKS} weeks");
+
+    view! {
+        <section class="mb-8">
+            <h2 class=SECTION_TITLE>"Last " {WEEKS} " weeks"</h2>
+            <div role="img" aria-label=summary class="grid auto-cols-fr grid-flow-col grid-rows-7 gap-0.5">
+                {days
+                    .into_iter()
+                    .map(|day| match names.get(&day) {
+                        Some(name) => view! {
+                            <span
+                                title=format!("{day} {name}")
+                                class="aspect-square rounded-sm bg-stone-900 dark:bg-stone-100"
+                            ></span>
+                        }
+                        .into_any(),
+                        None => view! {
+                            <span class="aspect-square rounded-sm bg-stone-200 dark:bg-stone-800"></span>
+                        }
+                        .into_any(),
+                    })
+                    .collect_view()}
+            </div>
         </section>
     }
 }
@@ -97,7 +164,7 @@ pub fn WorkoutDetail() -> impl IntoView {
         LocalResource::new(move || load_workout(route_id.get()));
 
     view! {
-        <BackLink href="/" label="Workouts" />
+        <BackLink href="/workouts" label="Workouts" />
         {move || when_loaded(
             data.get(),
             |(workout, sets): (Workouts, Vec<NamedSets>)| {
@@ -122,7 +189,7 @@ pub fn WorkoutDetail() -> impl IntoView {
                                     <ol class="mt-1 space-y-0.5 text-sm text-stone-600 tabular-nums dark:text-stone-400" role="list">
                                         {sets
                                             .into_iter()
-                                            .map(|named| view! { <li>{describe_set(&named.set)}</li> })
+                                            .map(|named| view! { <SetLine set=named.set /> })
                                             .collect_view()}
                                     </ol>
                                 </section>

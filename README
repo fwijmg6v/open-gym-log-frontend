@@ -18,6 +18,13 @@ Run
 Build
   trunk build --release    (output in dist/)
 
+Deploy
+  trunk build --release, then serve dist/ with a web server that
+    - forwards /api/* to the API with the /api prefix stripped, as Trunk.toml
+      does in dev (/api/exercises -> /exercises), and
+    - answers unknown paths with index.html, so client-side routes like
+      /workouts/12 survive a reload.
+
 Layout
   index.html         Trunk entry: Tailwind CSS + the Rust crate
   style/main.css     Tailwind import, where to scan for classes, the font
